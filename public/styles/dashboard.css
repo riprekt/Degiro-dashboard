@@ -320,13 +320,14 @@
 .chart-tooltip {
   position: absolute;
   z-index: 4;
+  box-sizing: border-box;
   min-width: 185px;
+  max-width: calc(100% - 16px);
   padding: 13px 15px;
   border: 1px solid var(--ink);
   background: var(--ink);
   color: var(--white);
   pointer-events: none;
-  transform: translate(-50%, -115%);
   box-shadow: 0 16px 35px rgba(16, 32, 26, 0.16);
   font-size: 11px;
 }

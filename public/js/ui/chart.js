@@ -8,6 +8,37 @@ import {
 
 const desktopQuery = "(min-width: 1051px)";
 const defaultSeries = ["value", "contributions"];
+const tooltipInset = 8;
+const tooltipGap = 12;
+
+export function getTooltipPosition({
+  anchorX,
+  anchorY,
+  frameWidth,
+  frameHeight,
+  tooltipWidth,
+  tooltipHeight,
+}) {
+  const maximumLeft = Math.max(
+    tooltipInset,
+    frameWidth - tooltipWidth - tooltipInset,
+  );
+  const maximumTop = Math.max(
+    tooltipInset,
+    frameHeight - tooltipHeight - tooltipInset,
+  );
+
+  return {
+    left: Math.min(
+      Math.max(anchorX - tooltipWidth / 2, tooltipInset),
+      maximumLeft,
+    ),
+    top: Math.min(
+      Math.max(anchorY - tooltipHeight - tooltipGap, tooltipInset),
+      maximumTop,
+    ),
+  };
+}
 
 function pathThrough(points) {
   return points
@@ -156,10 +187,19 @@ export function createPerformanceChart() {
         <div class="tooltip-row"><span>${t("chart.moneyAdded")}</span><span>${formatEuro(row.contributions)}</span></div>
         <div class="tooltip-row gain"><span>${t("chart.profit")}</span><span>${formatEuro(row.gain)}</span></div>
       `;
-      tooltip.style.left = `${(pointX / width) * frame.clientWidth}px`;
-      const tooltipY =
+      const anchorX = (pointX / width) * frame.clientWidth;
+      const anchorY =
         (y(Math.max(row.value, row.contributions)) / height) * frame.clientHeight;
-      tooltip.style.top = `${Math.max(tooltipY, 100)}px`;
+      const position = getTooltipPosition({
+        anchorX,
+        anchorY,
+        frameWidth: frame.clientWidth,
+        frameHeight: frame.clientHeight,
+        tooltipWidth: tooltip.offsetWidth,
+        tooltipHeight: tooltip.offsetHeight,
+      });
+      tooltip.style.left = `${position.left}px`;
+      tooltip.style.top = `${position.top}px`;
     });
 
     hitArea.addEventListener("pointerleave", () => {
