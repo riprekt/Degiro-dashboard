@@ -20,6 +20,9 @@ export function createMarketService({
   provider,
   freshnessMs = defaultFreshnessMs,
   now = () => Date.now(),
+  requestSpacingMs = 400,
+  wait = (milliseconds) =>
+    new Promise((resolve) => setTimeout(resolve, milliseconds)),
 }) {
   async function pricesForSymbol(symbol, period1, period2, force) {
     const cached = await cache.read(symbol);
@@ -71,12 +74,19 @@ export function createMarketService({
 
   return {
     async getPrices({ symbols, period1, period2, force = false }) {
-      const entries = await Promise.all(
-        symbols.map(async (symbol) => [
+      const entries = [];
+
+      for (const [index, symbol] of symbols.entries()) {
+        entries.push([
           symbol,
           await pricesForSymbol(symbol, period1, period2, force),
-        ]),
-      );
+        ]);
+
+        if (index < symbols.length - 1 && requestSpacingMs > 0) {
+          await wait(requestSpacingMs);
+        }
+      }
+
       return Object.fromEntries(entries);
     },
   };

@@ -116,3 +116,43 @@ test("a complete stale cache remains available when refresh fails", async () => 
   assert.equal(prices.TEST.refreshError, "offline");
   assert.equal(prices.TEST.points[0].close, 105);
 });
+
+test("symbols are requested sequentially with a short pause between them", async () => {
+  const events = [];
+  const entries = new Map();
+  const service = createMarketService({
+    cache: {
+      async read(symbol) {
+        return entries.get(symbol) ?? null;
+      },
+      async write(symbol, entry) {
+        entries.set(symbol, entry);
+      },
+    },
+    provider: {
+      name: "Test",
+      async fetchDailyCloses(symbol) {
+        events.push(`fetch:${symbol}`);
+        return [{ date: "2024-01-31", close: 100 }];
+      },
+    },
+    requestSpacingMs: 400,
+    async wait(milliseconds) {
+      events.push(`wait:${milliseconds}`);
+    },
+    now: () => currentTime,
+  });
+
+  await service.getPrices({
+    ...request,
+    symbols: ["FIRST", "SECOND", "THIRD"],
+  });
+
+  assert.deepEqual(events, [
+    "fetch:FIRST",
+    "wait:400",
+    "fetch:SECOND",
+    "wait:400",
+    "fetch:THIRD",
+  ]);
+});

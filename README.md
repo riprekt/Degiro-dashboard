@@ -94,6 +94,7 @@ The server:
 - stores normalized responses under `.cache/prices/`;
 - reuses a complete cache for 12 hours;
 - refreshes only the latest missing portion of stale histories;
+- spaces requests out and retries temporary rate limits on an alternate host;
 - falls back to stale cached prices when the market source is unavailable.
 
 The `.cache/` directory is excluded from Git. No third-party market-price data is
