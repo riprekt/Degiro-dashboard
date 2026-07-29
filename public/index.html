@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A private, local-first performance dashboard for DEGIRO exports."
+    />
+    <title>Folio — DEGIRO performance, locally</title>
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/import.css" />
+    <link rel="stylesheet" href="/styles/dashboard.css" />
+    <link rel="stylesheet" href="/styles/responsive.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="Folio home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>folio</span>
+      </a>
+      <div class="header-actions">
+        <label class="language-control">
+          <span class="visually-hidden">Language</span>
+          <select id="languageSelect" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="nl">NL</option>
+            <option value="fr">FR</option>
+            <option value="de">DE</option>
+          </select>
+        </label>
+        <button class="header-button" id="updateButton" data-i18n="header.update" hidden>
+          Update data
+        </button>
+        <details class="more-menu" id="moreMenu" hidden>
+          <summary data-i18n="header.more">More</summary>
+          <div class="more-menu-panel">
+            <button id="exportButton" data-i18n="header.download">Download data</button>
+            <button class="danger" id="clearButton" data-i18n="header.remove">
+              Remove saved data
+            </button>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <main>
+      <section class="import-stage" id="importStage">
+        <div class="import-copy">
+          <p class="eyebrow" data-i18n="import.eyebrow">SET UP FOLIO</p>
+          <h1 data-i18n="import.title">Import your DEGIRO history</h1>
+          <p class="lede" data-i18n="import.lede">
+            Choose two CSV exports. Folio identifies them automatically and builds
+            your dashboard as soon as both are ready.
+          </p>
+          <p class="privacy-note" data-i18n="import.privacy">
+            Your CSV contents are saved only in this browser. They are never uploaded.
+          </p>
+        </div>
+
+        <div class="import-workspace">
+          <details class="export-help">
+            <summary data-i18n="import.help">How to export the files from DEGIRO</summary>
+            <ol>
+              <li data-i18n="import.helpAccount">
+                Open <strong>Inbox → Account statement</strong>, select your full
+                account history, then export as CSV.
+              </li>
+              <li data-i18n="import.helpTransactions">
+                Open <strong>Inbox → Transactions</strong>, select the same full date
+                range, then export as CSV.
+              </li>
+            </ol>
+            <a
+              href="https://www.degiro.com/uk/helpdesk/tax/tax-treaties/which-reports-are-there-and-where-can-i-find-them"
+              target="_blank"
+              rel="noreferrer"
+              data-i18n="import.guide"
+            >
+              Open DEGIRO’s export guide
+            </a>
+          </details>
+
+          <div class="import-dropzone" id="importDropzone">
+            <div class="file-rail" aria-label="Required DEGIRO files">
+              <div class="file-drop" data-slot="account">
+                <span class="file-index">01</span>
+                <span class="file-copy">
+                  <strong>Account.csv</strong>
+                  <small data-i18n="import.accountDescription">Deposits, fees and cash balance</small>
+                </span>
+                <span class="file-state" data-i18n="import.needed">Needed</span>
+              </div>
+              <div class="file-drop" data-slot="transactions">
+                <span class="file-index">02</span>
+                <span class="file-copy">
+                  <strong>Transactions.csv</strong>
+                  <small data-i18n="import.transactionsDescription">Every purchase and sale</small>
+                </span>
+                <span class="file-state" data-i18n="import.needed">Needed</span>
+              </div>
+            </div>
+
+            <input
+              id="combinedFileInput"
+              type="file"
+              accept=".csv,text/csv"
+              multiple
+              hidden
+            />
+            <div class="import-actions">
+              <button class="primary-button" id="selectFilesButton" data-i18n="import.chooseBoth">
+                Choose both CSV files
+              </button>
+              <span data-i18n="import.drop">or drop them here</span>
+            </div>
+          </div>
+          <p class="import-status" id="importStatus" role="status" aria-live="polite" data-i18n="import.selectBoth">
+            Select Account.csv and Transactions.csv.
+          </p>
+        </div>
+      </section>
+
+      <section class="dashboard" id="dashboard" hidden>
+        <div class="dashboard-intro">
+          <div>
+            <p class="eyebrow" data-i18n="dashboard.eyebrow">SINCE YOU STARTED INVESTING</p>
+            <h1 data-i18n="dashboard.title">Performance</h1>
+          </div>
+          <div class="freshness" aria-label="Data freshness">
+            <div>
+              <span data-i18n="dashboard.imported">DEGIRO data imported</span>
+              <strong id="dataThrough">—</strong>
+            </div>
+            <div>
+              <span data-i18n="dashboard.pricesThrough">Market prices through</span>
+              <strong id="priceThrough">—</strong>
+            </div>
+            <button class="refresh-button" id="refreshButton">
+              <span aria-hidden="true">↻</span>
+              <span data-i18n="dashboard.refresh">Refresh market prices</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="data-warning" id="dataWarning" role="alert" hidden>
+          <strong data-i18n="dashboard.warning">Review imported data</strong>
+          <div id="dataWarningDetails"></div>
+        </div>
+
+        <div class="metric-strip" aria-label="Portfolio summary">
+          <div class="metric primary">
+            <span data-i18n="metric.currentValue">Current value</span>
+            <strong id="currentValue">—</strong>
+            <small id="positionCount">—</small>
+          </div>
+          <div class="metric">
+            <span data-i18n="metric.moneyAdded">Money added</span>
+            <strong id="contributions">—</strong>
+            <small id="firstTransaction">—</small>
+          </div>
+          <div class="metric gain">
+            <span data-i18n="metric.totalProfit">Total profit</span>
+            <strong id="gain">—</strong>
+            <small id="simpleReturn">—</small>
+          </div>
+          <div class="metric">
+            <span class="metric-label">
+              <span data-i18n="metric.yearlyReturn">Average yearly return</span>
+              <button
+                class="info-button"
+                type="button"
+                aria-label="About average yearly return"
+                title="Accounts for when you added money. Also called money-weighted return or XIRR."
+                data-i18n-title="metric.returnHelp"
+              >?</button>
+            </span>
+            <strong id="annualizedReturn">—</strong>
+            <small data-i18n="metric.returnCaption">Accounts for when you added money</small>
+          </div>
+        </div>
+
+        <section class="chart-section" aria-labelledby="chartTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" data-i18n="chart.eyebrow">VALUE / MONEY ADDED</p>
+              <h2 id="chartTitle" data-i18n="chart.title">Portfolio over time</h2>
+            </div>
+            <div class="chart-controls">
+              <div class="segmented" id="rangeControls" aria-label="Chart range" data-i18n-aria-label="chart.range">
+                <button data-range="1" aria-pressed="false">1Y</button>
+                <button data-range="3" aria-pressed="false">3Y</button>
+                <button data-range="5" aria-pressed="false">5Y</button>
+                <button class="active" data-range="all" aria-pressed="true">All</button>
+              </div>
+              <div class="series-controls" aria-label="Chart lines" data-i18n-aria-label="chart.lines">
+                <button
+                  class="series-toggle active"
+                  data-series="value"
+                  aria-pressed="true"
+                >
+                  <span class="swatch value" aria-hidden="true"></span>
+                  <span data-i18n="chart.value">Value</span>
+                </button>
+                <button
+                  class="series-toggle active"
+                  data-series="contributions"
+                  aria-pressed="true"
+                >
+                  <span class="swatch contributions" aria-hidden="true"></span>
+                  <span data-i18n="chart.moneyAdded">Money added</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-frame" id="chartFrame">
+            <svg
+              id="performanceChart"
+              viewBox="0 0 1200 220"
+              role="img"
+              aria-label="Portfolio value and money added over time"
+              data-i18n-aria-label="chart.description"
+            ></svg>
+            <div class="chart-tooltip" id="chartTooltip" hidden></div>
+          </div>
+          <div class="chart-caption">
+            <span id="chartStart">—</span>
+            <p data-i18n="chart.note">Values use the latest available public closing prices.</p>
+            <span id="chartEnd">—</span>
+          </div>
+        </section>
+
+        <section class="detail-grid">
+          <div class="allocation-section">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow" data-i18n="holdings.eyebrow">CURRENT HOLDINGS</p>
+                <h2 data-i18n="holdings.title">Holdings</h2>
+              </div>
+              <span class="cash-label" id="cashValue">— cash</span>
+            </div>
+            <div class="allocation-list" id="allocationList"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <dialog class="data-dialog" id="updateDialog" aria-labelledby="updateTitle">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow" data-i18n="update.eyebrow">REPLACE SAVED EXPORTS</p>
+          <h2 id="updateTitle" data-i18n="update.title">Update DEGIRO data</h2>
+        </div>
+        <button class="dialog-close" id="cancelUpdateButton" aria-label="Close">×</button>
+      </div>
+      <p data-i18n="update.description">
+        Export both files again using the full date range. Your current dashboard
+        stays unchanged until both new files are valid.
+      </p>
+      <div class="update-dropzone" id="updateDropzone">
+        <div class="update-file" data-update-slot="account">
+          <strong>Account.csv</strong>
+          <span data-i18n="import.needed">Needed</span>
+        </div>
+        <div class="update-file" data-update-slot="transactions">
+          <strong>Transactions.csv</strong>
+          <span data-i18n="import.needed">Needed</span>
+        </div>
+        <input
+          id="updateFileInput"
+          type="file"
+          accept=".csv,text/csv"
+          multiple
+          hidden
+        />
+        <button class="primary-button" id="selectUpdateFilesButton" data-i18n="update.choose">
+          Choose updated CSV files
+        </button>
+        <small data-i18n="import.drop">or drop them here</small>
+      </div>
+      <p class="import-status" id="updateStatus" role="status" aria-live="polite" data-i18n="update.select">
+        Select both updated exports.
+      </p>
+    </dialog>
+
+    <dialog class="confirm-dialog" id="clearDialog" aria-labelledby="clearTitle">
+      <p class="eyebrow" data-i18n="clear.eyebrow">LOCAL DATA</p>
+      <h2 id="clearTitle" data-i18n="clear.title">Remove saved data?</h2>
+      <p data-i18n="clear.description">
+        This removes the saved CSV contents from this browser and returns to the
+        import screen.
+      </p>
+      <div class="dialog-actions">
+        <button class="secondary-button" id="cancelClearButton" data-i18n="clear.cancel">Cancel</button>
+        <button class="danger-button" id="confirmClearButton" data-i18n="clear.confirm">Remove saved data</button>
+      </div>
+    </dialog>
+
+    <div class="loading-overlay" id="loadingOverlay" hidden>
+      <div class="loading-orbit" aria-hidden="true"></div>
+      <p id="loadingText" data-i18n="loading.reading">Reading exports…</p>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,170 @@
+.import-stage {
+  min-height: calc(100svh - 73px);
+  display: grid;
+  grid-template-columns: minmax(360px, 0.78fr) minmax(520px, 1.22fr);
+  align-items: center;
+  gap: clamp(48px, 7vw, 120px);
+  padding: clamp(38px, 6vh, 68px) 5vw;
+}
+
+.import-copy {
+  max-width: 560px;
+  animation: rise-in 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.import-copy h1 {
+  max-width: 540px;
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(50px, 5.4vw, 82px);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}
+
+.lede {
+  max-width: 520px;
+  margin: 26px 0 0;
+  color: var(--ink-soft);
+  font-size: clamp(15px, 1.25vw, 18px);
+  line-height: 1.55;
+}
+
+.privacy-note {
+  max-width: 500px;
+  margin: 20px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.import-workspace {
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  animation: rise-in 650ms 100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.export-help {
+  border-bottom: 1px solid var(--line);
+}
+
+.export-help summary {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.export-help ol {
+  margin: 0 0 14px;
+  padding-left: 21px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.export-help li + li {
+  margin-top: 8px;
+}
+
+.export-help a {
+  display: inline-block;
+  margin: 0 0 18px 21px;
+  color: var(--green-dark);
+  font-size: 11px;
+  text-underline-offset: 3px;
+}
+
+.import-dropzone {
+  transition: background-color 180ms ease, outline-color 180ms ease;
+}
+
+.import-dropzone.dragging {
+  background: rgba(10, 143, 104, 0.07);
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+}
+
+.file-drop {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 20px;
+  align-items: center;
+  min-height: 92px;
+  padding-right: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.file-drop:last-child {
+  border-bottom: 0;
+}
+
+.file-drop.ready {
+  background: rgba(10, 143, 104, 0.055);
+}
+
+.file-index {
+  color: var(--ink-soft);
+  font-family: var(--display);
+  font-size: 14px;
+  font-style: italic;
+}
+
+.file-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-copy strong {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.file-copy small,
+.file-state {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.file-state {
+  min-width: 82px;
+  text-align: right;
+}
+
+.file-drop.ready .file-state {
+  color: var(--green-dark);
+  font-weight: 700;
+}
+
+.import-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.import-actions span {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.import-status {
+  min-height: 20px;
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.import-status.error {
+  color: var(--red);
+}
+
+.import-status.success {
+  color: var(--green-dark);
+}

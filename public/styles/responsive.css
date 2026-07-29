@@ -1,0 +1,428 @@
+@media (min-width: 1051px) {
+  .dashboard {
+    display: grid;
+    grid-template:
+      "intro" auto
+      "warning" auto
+      "metrics" auto
+      "chart" minmax(0, 1fr)
+      "allocation" auto
+      / minmax(0, 1fr);
+    row-gap: clamp(10px, 1.5vh, 18px);
+    width: min(1600px, 94vw);
+    height: calc(100svh - 72px);
+    padding: clamp(18px, 2.8vh, 30px) 0;
+    overflow: hidden;
+  }
+
+  .dashboard-intro {
+    grid-area: intro;
+    padding-bottom: clamp(12px, 1.6vh, 18px);
+  }
+
+  .dashboard-intro .eyebrow,
+  .chart-section .eyebrow,
+  .detail-grid .eyebrow {
+    margin-bottom: 8px;
+  }
+
+  .dashboard-intro h1 {
+    font-size: clamp(48px, 5vw, 72px);
+  }
+
+  .data-warning {
+    grid-area: warning;
+    margin: 0;
+    padding: 10px 0;
+  }
+
+  .metric-strip {
+    grid-area: metrics;
+  }
+
+  .metric {
+    min-height: clamp(84px, 12vh, 110px);
+    padding: 14px 24px;
+  }
+
+  .metric strong {
+    margin: 7px 0 4px;
+    font-size: clamp(27px, 2.7vw, 40px);
+  }
+
+  .chart-section {
+    grid-area: chart;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .section-heading h2 {
+    font-size: clamp(31px, 3vw, 43px);
+  }
+
+  .chart-controls {
+    gap: 18px;
+  }
+
+  .segmented button {
+    min-width: 37px;
+    padding: 6px 8px;
+  }
+
+  .chart-frame {
+    flex: 1;
+    min-height: 0;
+    margin-top: 14px;
+    overflow: hidden;
+  }
+
+  #performanceChart {
+    width: 100%;
+    height: 100%;
+  }
+
+  .chart-caption {
+    padding-top: 7px;
+  }
+
+  .detail-grid {
+    grid-area: allocation;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .allocation-section {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 26px;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+
+  .detail-grid .section-heading.compact {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .detail-grid .section-heading.compact h2 {
+    font-size: 24px;
+  }
+
+  .allocation-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    border-top: 0;
+  }
+
+  .allocation-row {
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    gap: 3px 12px;
+    min-height: 0;
+    padding: 3px 18px;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .allocation-row:first-child {
+    padding-left: 0;
+  }
+
+  .allocation-row:last-child {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .allocation-symbol {
+    font-size: 16px;
+  }
+
+  .allocation-name,
+  .allocation-track {
+    display: none;
+  }
+
+  .allocation-value {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    color: var(--ink-soft);
+    font-size: 11px;
+    text-align: left;
+  }
+
+  .allocation-weight {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 1050px) {
+  .import-stage {
+    grid-template-columns: 1fr;
+    gap: 38px;
+  }
+
+  .import-copy {
+    max-width: 720px;
+  }
+
+  .metric-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .metric:nth-child(2) {
+    border-right: 0;
+  }
+
+  .metric:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .metric:nth-child(3) {
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-header {
+    min-height: 64px;
+    padding: 0 22px;
+  }
+
+  .header-actions {
+    gap: 12px;
+  }
+
+  .header-button,
+  .more-menu summary {
+    min-height: 44px;
+    padding: 0 8px;
+  }
+
+  .import-stage {
+    min-height: calc(100svh - 64px);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding: 34px 22px 28px;
+  }
+
+  .import-copy h1 {
+    max-width: 330px;
+    font-size: clamp(42px, 12vw, 54px);
+    line-height: 0.96;
+  }
+
+  .lede {
+    margin-top: 18px;
+    font-size: 15px;
+  }
+
+  .privacy-note {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+
+  .export-help summary {
+    min-height: 48px;
+  }
+
+  .file-drop {
+    grid-template-columns: 30px 1fr;
+    min-height: 74px;
+    padding: 14px 0;
+  }
+
+  .file-copy {
+    gap: 4px;
+  }
+
+  .file-copy strong {
+    font-size: 19px;
+  }
+
+  .file-state {
+    grid-column: 2;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .import-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 0;
+  }
+
+  .import-actions span {
+    text-align: center;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+
+  .dashboard {
+    width: calc(100vw - 44px);
+    padding-top: 52px;
+  }
+
+  .dashboard-intro,
+  .section-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .dashboard-intro {
+    gap: 28px;
+  }
+
+  .freshness {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .freshness .refresh-button {
+    grid-column: 1 / -1;
+    min-height: 44px;
+    width: fit-content;
+  }
+
+  .data-warning {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .metric-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .metric,
+  .metric:first-child,
+  .metric:nth-child(3) {
+    min-height: 118px;
+    padding: 22px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .chart-controls {
+    width: 100%;
+    align-items: start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .segmented {
+    width: 100%;
+  }
+
+  .segmented button {
+    min-height: 44px;
+    flex: 1;
+  }
+
+  .series-controls {
+    gap: 8px;
+  }
+
+  .series-toggle {
+    min-height: 44px;
+    padding: 0 8px;
+  }
+
+  .info-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .chart-frame {
+    min-height: 0;
+    overflow: visible;
+  }
+
+  #performanceChart {
+    min-width: 0;
+    width: 100%;
+    height: auto;
+  }
+
+  .chart-caption {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .chart-caption p {
+    display: none;
+  }
+
+  .allocation-row {
+    grid-template-columns: 52px minmax(0, 1fr) auto auto;
+    gap: 10px;
+  }
+
+  .allocation-track {
+    display: none;
+  }
+
+  .data-dialog,
+  .confirm-dialog {
+    max-height: calc(100svh - 28px);
+    padding: 22px;
+    overflow-y: auto;
+  }
+
+  .dialog-header h2,
+  .confirm-dialog h2 {
+    font-size: 32px;
+  }
+
+  .update-dropzone {
+    padding: 0 14px 14px;
+  }
+
+  .update-dropzone .primary-button {
+    width: 100%;
+  }
+
+  .update-dropzone small {
+    display: block;
+    margin: 8px 0 0;
+    text-align: center;
+  }
+
+  .dialog-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .secondary-button,
+  .danger-button {
+    width: 100%;
+  }
+
+  .toast {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

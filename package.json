@@ -1,0 +1,17 @@
+{
+  "name": "degiro-local-dashboard",
+  "version": "1.0.0",
+  "description": "A multilingual, local-first performance dashboard for DEGIRO CSV exports.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check": "node --check server.mjs && node --check public/js/app.js && node --test",
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test"
+  }
+}
