@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { loadEnvFile } from "./server/env.mjs";
 import { createAlphaVantageProvider } from "./server/market/alpha-vantage-provider.mjs";
+import { createInstrumentCache } from "./server/market/instrument-cache.mjs";
+import { createInstrumentResolver } from "./server/market/instrument-resolver.mjs";
 import { createMarketService } from "./server/market/market-service.mjs";
+import { createOpenFigiClient } from "./server/market/openfigi-client.mjs";
 import { createPriceCache } from "./server/market/price-cache.mjs";
 import { createStaticFileHandler } from "./server/static-files.mjs";
 
@@ -12,20 +15,18 @@ const rootDirectory = path.dirname(fileURLToPath(import.meta.url));
 await loadEnvFile(path.join(rootDirectory, ".env"));
 
 const port = Number(process.env.PORT || 4173);
-const allowedSymbols = new Set([
-  "IWDA.AS",
-  "EMIM.AS",
-  "SWRD.AS",
-  "VWCE.DE",
-  "AMC",
-  "EURUSD=X",
-]);
 const marketService = createMarketService({
   cache: createPriceCache(path.join(rootDirectory, ".cache", "prices")),
   provider: createAlphaVantageProvider({
     apiKey: process.env.ALPHA_VANTAGE_API_KEY,
   }),
   requestSpacingMs: 1_100,
+});
+const instrumentResolver = createInstrumentResolver({
+  cache: createInstrumentCache(
+    path.join(rootDirectory, ".cache", "instruments"),
+  ),
+  client: createOpenFigiClient(),
 });
 const serveStatic = createStaticFileHandler(path.join(rootDirectory, "public"));
 
@@ -37,22 +38,45 @@ function sendJson(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
-async function handlePrices(requestUrl, response) {
-  const symbols = [
-    ...new Set(
-      (requestUrl.searchParams.get("symbols") || "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean),
-    ),
-  ];
-  const period1 = Number(requestUrl.searchParams.get("period1"));
-  const period2 = Number(requestUrl.searchParams.get("period2"));
-  const force = requestUrl.searchParams.has("refresh");
+function validInstrument(value) {
+  return (
+    value &&
+    /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(value.isin) &&
+    typeof value.name === "string" &&
+    value.name.length <= 250 &&
+    /^[A-Z]{3}$/.test(value.currency) &&
+    Array.isArray(value.venues) &&
+    value.venues.length <= 10 &&
+    value.venues.every(
+      (venue) => typeof venue === "string" && venue.length <= 20,
+    )
+  );
+}
+
+async function readJson(request) {
+  const chunks = [];
+  let length = 0;
+
+  for await (const chunk of request) {
+    length += chunk.length;
+    if (length > 64 * 1024) throw new Error("Request body is too large.");
+    chunks.push(chunk);
+  }
+
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+async function handleMarketData(request, response) {
+  const body = await readJson(request);
+  const instruments = body?.instruments;
+  const period1 = Number(body?.period1);
+  const period2 = Number(body?.period2);
+  const force = body?.refresh === true;
   const isInvalid =
-    symbols.length === 0 ||
-    symbols.length > allowedSymbols.size ||
-    symbols.some((symbol) => !allowedSymbols.has(symbol)) ||
+    !Array.isArray(instruments) ||
+    instruments.length === 0 ||
+    instruments.length > 100 ||
+    instruments.some((instrument) => !validInstrument(instrument)) ||
     !Number.isInteger(period1) ||
     !Number.isInteger(period2) ||
     period2 <= period1;
@@ -63,14 +87,37 @@ async function handlePrices(requestUrl, response) {
   }
 
   try {
+    const resolution = await instrumentResolver.resolveMany(instruments);
+    const marketRequestsByKey = new Map(
+      Object.values(resolution.instruments).map((instrument) => [
+        instrument.ticker,
+        {
+          key: instrument.ticker,
+          symbol: instrument.priceSymbol,
+        },
+      ]),
+    );
+    if (
+      Object.values(resolution.instruments).some(
+        (instrument) => instrument.currency === "USD",
+      )
+    ) {
+      marketRequestsByKey.set("EURUSD=X", {
+        key: "EURUSD=X",
+        symbol: "EURUSD=X",
+      });
+    }
+
     const prices = await marketService.getPrices({
-      symbols,
+      requests: [...marketRequestsByKey.values()],
       period1,
       period2,
       force,
     });
     sendJson(response, 200, {
       generatedAt: new Date().toISOString(),
+      instruments: resolution.instruments,
+      unresolved: resolution.unresolved,
       prices,
     });
   } catch (error) {
@@ -82,15 +129,18 @@ async function handlePrices(requestUrl, response) {
 }
 
 async function handleRequest(request, response) {
-  if (request.method !== "GET") {
-    response.writeHead(405, { Allow: "GET" });
-    response.end("Method not allowed");
+  const requestUrl = new URL(request.url || "/", "http://127.0.0.1");
+  if (
+    requestUrl.pathname === "/api/market-data" &&
+    request.method === "POST"
+  ) {
+    await handleMarketData(request, response);
     return;
   }
 
-  const requestUrl = new URL(request.url || "/", "http://127.0.0.1");
-  if (requestUrl.pathname === "/api/prices") {
-    await handlePrices(requestUrl, response);
+  if (request.method !== "GET") {
+    response.writeHead(405, { Allow: "GET, POST" });
+    response.end("Method not allowed");
     return;
   }
 

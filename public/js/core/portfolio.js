@@ -8,7 +8,6 @@ import {
   parseTransactionsExport,
   quantitiesAt,
 } from "./degiro.js";
-import { findInstrument } from "./instruments.js";
 import { normalizeMarketPrices, priceAt } from "./prices.js";
 
 const millisecondsPerYear = 86_400_000 * 365;
@@ -69,13 +68,19 @@ function eurPrice(instrument, date, pricesBySymbol) {
     : null;
 }
 
-function valueInvestments(quantities, date, pricesBySymbol, warnings) {
+function valueInvestments(
+  quantities,
+  date,
+  pricesBySymbol,
+  instrumentsByIsin,
+  warnings,
+) {
   let total = 0;
 
   for (const [isin, quantity] of quantities) {
     if (Math.abs(quantity) < 1e-9) continue;
 
-    const instrument = findInstrument(isin);
+    const instrument = instrumentsByIsin[isin];
     if (!instrument) {
       warnings.push({
         code: "warning.unknownInstrument",
@@ -103,12 +108,19 @@ function buildHistory({
   accountRows,
   transactions,
   pricesBySymbol,
+  instrumentsByIsin,
   snapshotDate,
   warnings,
 }) {
   return valuationDates(transactions[0].date, snapshotDate).map((date) => {
     const quantities = quantitiesAt(transactions, date);
-    const investments = valueInvestments(quantities, date, pricesBySymbol, warnings);
+    const investments = valueInvestments(
+      quantities,
+      date,
+      pricesBySymbol,
+      instrumentsByIsin,
+      warnings,
+    );
     const cash = cashAt(accountRows, date);
     const contributions = contributionsAt(accountRows, date);
     const value = investments + cash;
@@ -126,11 +138,17 @@ function buildHistory({
   });
 }
 
-function buildAllocation(transactions, snapshotDate, pricesBySymbol, portfolioValue) {
+function buildAllocation(
+  transactions,
+  snapshotDate,
+  pricesBySymbol,
+  instrumentsByIsin,
+  portfolioValue,
+) {
   return [...quantitiesAt(transactions, snapshotDate)]
     .filter(([, quantity]) => Math.abs(quantity) >= 1e-9)
     .map(([isin, quantity]) => {
-      const instrument = findInstrument(isin);
+      const instrument = instrumentsByIsin[isin];
       if (!instrument) return null;
 
       const price = eurPrice(instrument, snapshotDate, pricesBySymbol);
@@ -150,16 +168,16 @@ function buildAllocation(transactions, snapshotDate, pricesBySymbol, portfolioVa
     .sort((left, right) => right.value - left.value);
 }
 
-function oldestPriceDate(allocation, pricesBySymbol) {
+function oldestPriceDate(allocation, pricesBySymbol, instrumentsByIsin) {
   const priceDates = allocation
     .map((position) => {
-      const instrument = findInstrument(position.isin);
+      const instrument = instrumentsByIsin[position.isin];
       return pricesBySymbol[instrument.ticker]?.at(-1)?.key ?? null;
     })
     .filter(Boolean);
 
   const hasDollarHolding = allocation.some(
-    (position) => findInstrument(position.isin).currency === "USD",
+    (position) => instrumentsByIsin[position.isin].currency === "USD",
   );
   if (hasDollarHolding) {
     const exchangeRateDate = pricesBySymbol["EURUSD=X"]?.at(-1)?.key;
@@ -172,6 +190,7 @@ function oldestPriceDate(allocation, pricesBySymbol) {
 export function buildPortfolioModel({
   accountText,
   transactionText,
+  instrumentsByIsin = {},
   marketPayloads,
   snapshotDate = new Date(),
 }) {
@@ -212,6 +231,7 @@ export function buildPortfolioModel({
     accountRows,
     transactions,
     pricesBySymbol,
+    instrumentsByIsin,
     snapshotDate: cleanSnapshotDate,
     warnings,
   });
@@ -220,9 +240,14 @@ export function buildPortfolioModel({
     transactions,
     cleanSnapshotDate,
     pricesBySymbol,
+    instrumentsByIsin,
     latestValue.value,
   );
-  const priceThrough = oldestPriceDate(allocation, pricesBySymbol);
+  const priceThrough = oldestPriceDate(
+    allocation,
+    pricesBySymbol,
+    instrumentsByIsin,
+  );
   const annualizedReturn = solveAnnualizedReturn([
     ...externalCashFlows(accountRows),
     { date: latestValue.date, amount: latestValue.value },

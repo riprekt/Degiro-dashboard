@@ -1,4 +1,3 @@
-import { findInstrument } from "./instruments.js";
 import { parseCsv, parseDegiroDate, parseEuropeanNumber } from "./csv.js";
 
 export const requiredExportTypes = ["account", "transactions"];
@@ -22,6 +21,7 @@ const columnAliases = {
   ],
   quantity: ["aantal", "quantity", "menge", "stuckzahl", "quantite"],
   price: ["koers", "price", "preis", "cours", "prix"],
+  currency: ["valuta", "currency", "wahrung", "devise"],
   valueEur: [
     "waarde eur",
     "value eur",
@@ -150,6 +150,10 @@ export function parseAccountExport(text) {
 export function parseTransactionsExport(text) {
   const [header = [], ...rows] = parseCsv(text);
   const indexes = headerIndexes(header);
+  const adjacentPriceCurrencyIndex =
+    indexes.price >= 0 && header[indexes.price + 1] === ""
+      ? indexes.price + 1
+      : -1;
 
   return rows
     .map((row, sourceIndex) => ({
@@ -157,8 +161,11 @@ export function parseTransactionsExport(text) {
       time: valueAt(row, indexes.time),
       product: valueAt(row, indexes.product),
       isin: valueAt(row, indexes.isin),
-      exchange:
-        valueAt(row, indexes.exchange) || valueAt(row, indexes.venue),
+      exchange: valueAt(row, indexes.exchange),
+      venue: valueAt(row, indexes.venue),
+      currency:
+        valueAt(row, indexes.currency) ||
+        valueAt(row, adjacentPriceCurrencyIndex),
       quantity: parseEuropeanNumber(valueAt(row, indexes.quantity)),
       price: parseEuropeanNumber(valueAt(row, indexes.price)),
       valueEur: parseEuropeanNumber(valueAt(row, indexes.valueEur)),
@@ -198,17 +205,31 @@ export function duplicateTransactionCount(transactions) {
   return duplicates;
 }
 
-export function marketSymbolsFor(transactionText) {
-  const instruments = parseTransactionsExport(transactionText)
-    .map((transaction) => findInstrument(transaction.isin))
-    .filter(Boolean);
-  const symbols = instruments.map((instrument) => instrument.ticker);
+export function instrumentRequirements(transactionText) {
+  const requirements = new Map();
 
-  if (instruments.some((instrument) => instrument.currency === "USD")) {
-    symbols.push("EURUSD=X");
+  for (const transaction of parseTransactionsExport(transactionText)) {
+    const existing = requirements.get(transaction.isin) ?? {
+      isin: transaction.isin,
+      name: "",
+      currency: "",
+      venues: [],
+    };
+
+    if (!existing.name && transaction.product) {
+      existing.name = transaction.product;
+    }
+    if (!existing.currency && transaction.currency) {
+      existing.currency = transaction.currency.toUpperCase();
+    }
+    const venue = transaction.venue || transaction.exchange;
+    if (venue && !existing.venues.includes(venue)) {
+      existing.venues.push(venue);
+    }
+    requirements.set(transaction.isin, existing);
   }
 
-  return [...new Set(symbols)];
+  return [...requirements.values()];
 }
 
 export function transactionDateRange(transactionText) {

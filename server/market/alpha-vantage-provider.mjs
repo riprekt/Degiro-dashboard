@@ -1,11 +1,3 @@
-const symbols = {
-  "IWDA.AS": "IWDA.AMS",
-  "EMIM.AS": "IS3N.DEX",
-  "SWRD.AS": "SPPW.DEX",
-  "VWCE.DE": "VWCE.DEX",
-  AMC: "AMC",
-};
-
 const weekSeconds = 7 * 24 * 60 * 60;
 
 function unixDate(date) {
@@ -26,7 +18,7 @@ function equityRequest(symbol, apiKey) {
   return {
     params: {
       function: "TIME_SERIES_WEEKLY_ADJUSTED",
-      symbol: symbols[symbol],
+      symbol,
       apikey: apiKey,
     },
     seriesName: "Weekly Adjusted Time Series",
@@ -62,10 +54,6 @@ export function createAlphaVantageProvider({ apiKey, fetchImpl = fetch } = {}) {
         symbol === "EURUSD=X"
           ? forexRequest(apiKey)
           : equityRequest(symbol, apiKey);
-
-      if (!request.params.symbol && symbol !== "EURUSD=X") {
-        throw new Error(`${symbol}: no Alpha Vantage symbol mapping`);
-      }
 
       const query = new URLSearchParams(request.params);
       const response = await fetchImpl(

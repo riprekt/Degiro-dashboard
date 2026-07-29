@@ -19,7 +19,7 @@ test("an API key is required before the provider starts", () => {
   );
 });
 
-test("DEGIRO symbols map to verified Alpha Vantage listings", async () => {
+test("the resolved market symbol is passed to Alpha Vantage", async () => {
   let requestedUrl;
   const provider = createAlphaVantageProvider({
     apiKey: "test-key",
@@ -35,7 +35,7 @@ test("DEGIRO symbols map to verified Alpha Vantage listings", async () => {
   });
 
   const points = await provider.fetchDailyCloses(
-    "SWRD.AS",
+    "SPPW.DEX",
     Date.parse("2024-01-01T00:00:00Z") / 1000,
     Date.parse("2024-02-01T00:00:00Z") / 1000,
   );

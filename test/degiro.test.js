@@ -6,7 +6,7 @@ import {
   contributionsAt,
   duplicateTransactionCount,
   externalCashFlows,
-  marketSymbolsFor,
+  instrumentRequirements,
   parseAccountExport,
   parseTransactionsExport,
   transactionDateRange,
@@ -42,7 +42,12 @@ test("account and transaction exports are normalized into typed rows", () => {
 });
 
 test("market requirements come from the instruments in Transactions.csv", () => {
-  assert.deepEqual(marketSymbolsFor(transactionsCsv), ["IWDA.AS"]);
+  assert.deepEqual(instrumentRequirements(transactionsCsv), [{
+    isin: "IE00B4L5Y983",
+    name: "IWDA",
+    currency: "EUR",
+    venues: ["Euronext Amsterdam"],
+  }]);
   assert.deepEqual(transactionDateRange(transactionsCsv), {
     start: new Date("2024-01-02T00:00:00.000Z"),
     end: new Date("2024-01-02T00:00:00.000Z"),

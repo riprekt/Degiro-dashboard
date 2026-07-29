@@ -1,4 +1,7 @@
-import { marketSymbolsFor, transactionDateRange } from "../core/degiro.js";
+import {
+  instrumentRequirements,
+  transactionDateRange,
+} from "../core/degiro.js";
 
 export async function fetchMarketPrices(transactionText, { refresh = false } = {}) {
   const dateRange = transactionDateRange(transactionText);
@@ -8,21 +11,23 @@ export async function fetchMarketPrices(transactionText, { refresh = false } = {
     throw error;
   }
 
-  const symbols = marketSymbolsFor(transactionText);
+  const instruments = instrumentRequirements(transactionText);
   const firstDayOfStartMonth = Date.UTC(
     dateRange.start.getUTCFullYear(),
     dateRange.start.getUTCMonth(),
     1,
   );
-  const query = new URLSearchParams({
-    symbols: symbols.join(","),
-    period1: String(Math.floor(firstDayOfStartMonth / 1000)),
-    period2: String(Math.floor(Date.now() / 1000) + 86_400),
+  const request = {
+    instruments,
+    period1: Math.floor(firstDayOfStartMonth / 1000),
+    period2: Math.floor(Date.now() / 1000) + 86_400,
+    refresh,
+  };
+  const response = await fetch("/api/market-data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
   });
-
-  if (refresh) query.set("refresh", String(Date.now()));
-
-  const response = await fetch(`/api/prices?${query}`);
   const body = await response.json();
 
   if (!response.ok) {
@@ -41,6 +46,7 @@ export async function fetchMarketPrices(transactionText, { refresh = false } = {
   const refreshError = series.find((entry) => entry.refreshError)?.refreshError;
 
   return {
+    instruments: body.instruments,
     prices: body.prices,
     warnings,
     usedStaleCache: warnings.length > 0,

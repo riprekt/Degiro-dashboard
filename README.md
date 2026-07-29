@@ -100,13 +100,17 @@ Other controls:
 
 ## Privacy and network access
 
-The imported CSV contents are parsed and stored in browser storage. They are not
-sent to the Node server. The browser sends only known market symbols and a date
-range to the server.
+The imported CSV files are parsed and stored in browser storage. The full files
+are not sent to the Node server. For market-data lookup, the browser sends only
+each instrument's ISIN, product name, currency, trading venue, and the required
+date range to the local server.
 
 The server:
 
 - binds only to `127.0.0.1`;
+- resolves instruments through the public
+  [OpenFIGI API](https://www.openfigi.com/api/documentation);
+- caches resolved instruments under `.cache/instruments/` for 30 days;
 - requests weekly adjusted closing prices from Alpha Vantage;
 - stores normalized responses under `.cache/prices/`;
 - reuses a complete cache for 12 hours;
@@ -114,6 +118,10 @@ The server:
 - refreshes only the latest missing portion of stale histories;
 - spaces requests out to respect the free API limit;
 - falls back to stale cached prices when the market source is unavailable.
+
+OpenFIGI receives the instrument metadata needed for resolution. Alpha Vantage
+receives the resolved market symbols and date range. Neither service receives
+the imported CSV files or the account's cash and transaction amounts.
 
 The `.env` and `.cache/` paths are excluded from Git. No API keys or third-party
 market-price data are distributed in this repository. Alpha Vantage's free plan
@@ -136,30 +144,27 @@ requests during normal use.
 Public closes can differ from values displayed by DEGIRO. Folio is intended as a
 personal overview, not tax, accounting, trading, or investment advice.
 
-## Supported instruments
+## Automatic instrument lookup
 
-| Short name | Instrument | DEGIRO symbol | Price symbol |
-| --- | --- | --- | --- |
-| IWDA | iShares Core MSCI World | `IWDA.AS` | `IWDA.AMS` |
-| EMIM | iShares Core MSCI Emerging Markets IMI | `EMIM.AS` | `IS3N.DEX` |
-| SWRD | SPDR MSCI World | `SWRD.AS` | `SPPW.DEX` |
-| VWCE | Vanguard FTSE All-World | `VWCE.DE` | `VWCE.DEX` |
-| AMC | AMC Entertainment | `AMC` | `AMC` |
+Folio does not maintain a catalogue of supported holdings. It reads the ISIN,
+product name, currency, and trading venue from Transactions.csv and resolves the
+instrument through OpenFIGI. The result is cached locally for 30 days, so normal
+page loads do not repeat the lookup.
 
-EMIM and SWRD use their EUR-denominated Xetra listings for prices because Alpha
-Vantage does not list their Amsterdam symbols. The mappings refer to the same
-fund ISINs.
+The symbol shown in the dashboard and the listing used for prices can differ.
+For example, a holding traded in Amsterdam may use the same fund's
+EUR-denominated Xetra listing when that is the listing available from Alpha
+Vantage. Matching is based on the ISIN, not only on the ticker.
 
-An unmapped ISIN is omitted from valuation and produces a warning. Add a mapping
-to `public/js/core/instruments.js` and allow the corresponding symbol in
-`server.mjs`.
+If an identifier has been retired after a corporate action, Folio also tries the
+DEGIRO product name. An instrument that still cannot be resolved is omitted from
+valuation and produces a warning.
 
 ## Known limitations
 
 - Export translations are based on known English, Dutch, French, and German
   column and description variants. DEGIRO may introduce other wording.
-- Instrument-to-market-symbol mapping is currently explicit rather than
-  automatic.
+- OpenFIGI or Alpha Vantage may not cover every instrument or exchange.
 - Corporate actions or transferred securities not represented in
   Transactions.csv may need additional handling.
 - Browser storage capacity varies. Very large exports can exceed its quota.
@@ -183,7 +188,7 @@ degiro-dashboard/
 │   └── styles/                     Base, import, dashboard, and responsive CSS
 ├── server/
 │   ├── env.mjs                     Private environment-file loader
-│   ├── market/                     Provider, persistent cache, and refresh policy
+│   ├── market/                     Instrument lookup, prices, caches, and refresh policy
 │   └── static-files.mjs            Static-file security and content types
 ├── test/
 │   ├── fixtures/                   Synthetic DEGIRO exports
@@ -212,8 +217,8 @@ npm test
 
 The test suite covers localized exports, European and English number formats,
 deposits, withdrawals, buys, complete sales, USD conversion, unknown
-instruments, duplicate detection, invalid exports, cache freshness, incremental
-refresh, and offline cache fallback.
+instruments, automatic ISIN resolution, duplicate detection, invalid exports,
+cache freshness, incremental refresh, and offline cache fallback.
 
 There is no transpiler or bundler. Refresh the page after changing HTML, CSS, or
 browser JavaScript.
@@ -226,7 +231,8 @@ browser JavaScript.
   and restart Folio.
 - **API request limit reached:** wait until the daily allowance resets. Folio
   continues using a complete cached history when one is available.
-- **An instrument warning appears:** its ISIN has no market-symbol mapping yet.
+- **An instrument warning appears:** OpenFIGI could not resolve it, or Alpha
+  Vantage has no usable price listing for it.
 - **Cached-price warning:** Folio could not reach the price source and is showing
   the most recent locally cached data.
 - **Prices are older than expected:** weekends and exchange holidays use the most

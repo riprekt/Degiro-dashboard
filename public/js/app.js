@@ -53,6 +53,7 @@ const state = {
   files: emptyExportSet(),
   pendingFiles: emptyExportSet(),
   model: null,
+  instruments: null,
   marketPayloads: null,
   savedAt: null,
 };
@@ -90,9 +91,11 @@ async function buildDashboard({ refreshPrices = false } = {}) {
       { refresh: refreshPrices },
     );
     state.marketPayloads = marketData.prices;
+    state.instruments = marketData.instruments;
     state.model = buildPortfolioModel({
       accountText: state.files.account.text,
       transactionText: state.files.transactions.text,
+      instrumentsByIsin: state.instruments,
       marketPayloads: state.marketPayloads,
       snapshotDate: new Date(),
     });
@@ -120,6 +123,7 @@ async function applyUpdatedFiles() {
     files: state.files,
     model: state.model,
     marketPayloads: state.marketPayloads,
+    instruments: state.instruments,
   };
   state.files = state.pendingFiles;
 
@@ -134,6 +138,7 @@ async function applyUpdatedFiles() {
     state.files = previousState.files;
     state.model = previousState.model;
     state.marketPayloads = previousState.marketPayloads;
+    state.instruments = previousState.instruments;
     dashboardView.render(state.model, { savedAt: state.savedAt });
     setImportStatus(elements.updateStatus, errorMessage(error), "error");
   }
@@ -197,6 +202,7 @@ function resetApplication() {
   state.pendingFiles = emptyExportSet();
   state.model = null;
   state.marketPayloads = null;
+  state.instruments = null;
   state.savedAt = null;
   performanceChart.reset();
 

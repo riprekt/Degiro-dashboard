@@ -26,8 +26,8 @@ export function createMarketService({
   wait = (milliseconds) =>
     new Promise((resolve) => setTimeout(resolve, milliseconds)),
 }) {
-  async function pricesForSymbol(symbol, period1, period2, force) {
-    const cached = await cache.read(symbol);
+  async function pricesForSymbol(key, providerSymbol, period1, period2, force) {
+    const cached = await cache.read(key);
     const usesCurrentProvider = cached?.source === provider.name;
     const coversStart =
       cached &&
@@ -56,13 +56,13 @@ export function createMarketService({
 
     try {
       const newPoints = await provider.fetchDailyCloses(
-        symbol,
+        providerSymbol,
         fetchFrom,
         period2,
       );
       const entry = {
         version: 1,
-        symbol,
+        symbol: key,
         source: provider.name,
         fetchedAt: new Date(now()).toISOString(),
         coveredFrom: usesCurrentProvider && coversStart
@@ -73,7 +73,7 @@ export function createMarketService({
           newPoints,
         ),
       };
-      await cache.write(symbol, entry);
+      await cache.write(key, entry);
       return {
         series: { ...entry, stale: false },
         requested: true,
@@ -94,16 +94,24 @@ export function createMarketService({
   }
 
   return {
-    async getPrices({ symbols, period1, period2, force = false }) {
+    async getPrices({ symbols, requests, period1, period2, force = false }) {
+      const marketRequests =
+        requests ?? (symbols ?? []).map((symbol) => ({ key: symbol, symbol }));
       const entries = [];
 
-      for (const [index, symbol] of symbols.entries()) {
-        const result = await pricesForSymbol(symbol, period1, period2, force);
-        entries.push([symbol, result.series]);
+      for (const [index, request] of marketRequests.entries()) {
+        const result = await pricesForSymbol(
+          request.key,
+          request.symbol,
+          period1,
+          period2,
+          force,
+        );
+        entries.push([request.key, result.series]);
 
         if (
           result.requested &&
-          index < symbols.length - 1 &&
+          index < marketRequests.length - 1 &&
           requestSpacingMs > 0
         ) {
           await wait(requestSpacingMs);

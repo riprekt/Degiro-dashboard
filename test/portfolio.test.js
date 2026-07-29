@@ -15,6 +15,16 @@ const transactionsCsv = [
   "02-01-2024,10:00,IWDA,IE00B4L5Y983,Euronext Amsterdam,EUR,5,100,EUR,500,EUR,500,1,,2,-502",
 ].join("\n");
 
+const iwdaInstruments = {
+  IE00B4L5Y983: {
+    shortName: "IWDA",
+    name: "iShares Core MSCI World",
+    ticker: "IWDA.AS",
+    priceSymbol: "EUNL.DEX",
+    currency: "EUR",
+  },
+};
+
 function yahooPrices(entries) {
   return {
     chart: {
@@ -33,6 +43,7 @@ test("portfolio history combines holdings, public prices, and cash", () => {
   const model = buildPortfolioModel({
     accountText: accountCsv,
     transactionText: transactionsCsv,
+    instrumentsByIsin: iwdaInstruments,
     marketPayloads: {
       "IWDA.AS": yahooPrices([
         ["2024-01-02", 100],
@@ -78,6 +89,7 @@ test("a complete sale removes the holding without losing realized profit", () =>
   const model = buildPortfolioModel({
     accountText: soldAccount,
     transactionText: soldTransactions,
+    instrumentsByIsin: iwdaInstruments,
     marketPayloads: {
       "IWDA.AS": yahooPrices([
         ["2024-01-02", 100],
@@ -106,6 +118,15 @@ test("USD holdings are converted with the historical EUR/USD close", () => {
   const model = buildPortfolioModel({
     accountText: usdAccount,
     transactionText: usdTransactions,
+    instrumentsByIsin: {
+      US00165C1045: {
+        shortName: "AMC",
+        name: "AMC Entertainment",
+        ticker: "AMC",
+        priceSymbol: "AMC",
+        currency: "USD",
+      },
+    },
     marketPayloads: {
       AMC: { points: [{ date: "2024-01-31", close: 12 }] },
       "EURUSD=X": { points: [{ date: "2024-01-31", close: 1.2 }] },
