@@ -289,13 +289,21 @@ enableFileDropzone(elements.updateDropzone, (files) => {
 elements.refreshButton.addEventListener("click", async () => {
   try {
     const marketData = await buildDashboard({ refreshPrices: true });
-    showToast(
-      t(
-        marketData.usedStaleCache
-          ? "toast.cacheFallback"
-          : "toast.refreshed",
-      ),
-    );
+    if (marketData.refreshError) {
+      showToast(
+        t("toast.refreshFailed", { message: marketData.refreshError }),
+      );
+    } else {
+      showToast(
+        t(
+          marketData.usedStaleCache
+            ? "toast.cacheFallback"
+            : marketData.refreshSkipped
+              ? "toast.pricesCurrent"
+              : "toast.refreshed",
+        ),
+      );
+    }
   } catch (error) {
     showToast(t("toast.refreshFailed", { message: errorMessage(error) }));
   }

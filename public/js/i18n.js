@@ -78,6 +78,7 @@ const translations = {
     "loading.refreshing": "Refreshing market prices…",
     "toast.updated": "DEGIRO data updated.",
     "toast.refreshed": "Market prices refreshed.",
+    "toast.pricesCurrent": "Market prices are already up to date.",
     "toast.cacheFallback": "Live prices were unavailable. Cached prices are still in use.",
     "toast.refreshFailed": "Could not refresh prices: {message}",
     "toast.returnHelp":
@@ -174,6 +175,7 @@ const translations = {
     "loading.refreshing": "Marktprijzen vernieuwen…",
     "toast.updated": "DEGIRO-gegevens bijgewerkt.",
     "toast.refreshed": "Marktprijzen vernieuwd.",
+    "toast.pricesCurrent": "De marktprijzen zijn al actueel.",
     "toast.cacheFallback": "Live prijzen waren niet beschikbaar. De opgeslagen prijzen blijven in gebruik.",
     "toast.refreshFailed": "Marktprijzen konden niet worden vernieuwd: {message}",
     "toast.returnHelp":
@@ -270,6 +272,7 @@ const translations = {
     "loading.refreshing": "Actualisation des cours…",
     "toast.updated": "Données DEGIRO actualisées.",
     "toast.refreshed": "Cours de marché actualisés.",
+    "toast.pricesCurrent": "Les cours de marché sont déjà à jour.",
     "toast.cacheFallback": "Les cours en direct sont indisponibles. Le cache local reste utilisé.",
     "toast.refreshFailed": "Impossible d’actualiser les cours : {message}",
     "toast.returnHelp":
@@ -366,6 +369,7 @@ const translations = {
     "loading.refreshing": "Marktpreise werden aktualisiert…",
     "toast.updated": "DEGIRO-Daten aktualisiert.",
     "toast.refreshed": "Marktpreise aktualisiert.",
+    "toast.pricesCurrent": "Die Marktpreise sind bereits aktuell.",
     "toast.cacheFallback": "Live-Kurse waren nicht verfügbar. Der lokale Cache bleibt aktiv.",
     "toast.refreshFailed": "Marktpreise konnten nicht aktualisiert werden: {message}",
     "toast.returnHelp":

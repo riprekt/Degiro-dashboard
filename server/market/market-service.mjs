@@ -1,4 +1,5 @@
 const defaultFreshnessMs = 12 * 60 * 60 * 1000;
+const defaultMinimumForceAgeMs = 60 * 60 * 1000;
 const overlapSeconds = 3 * 24 * 60 * 60;
 const marketOpenToleranceSeconds = 24 * 60 * 60;
 
@@ -19,6 +20,7 @@ export function createMarketService({
   cache,
   provider,
   freshnessMs = defaultFreshnessMs,
+  minimumForceAgeMs = defaultMinimumForceAgeMs,
   now = () => Date.now(),
   requestSpacingMs = 400,
   wait = (milliseconds) =>
@@ -34,10 +36,15 @@ export function createMarketService({
       usesCurrentProvider &&
       coversStart &&
       now() - Date.parse(cached.fetchedAt) < freshnessMs;
+    const cacheAge = cached ? now() - Date.parse(cached.fetchedAt) : Infinity;
 
-    if (!force && isFresh) {
+    if (isFresh && (!force || cacheAge < minimumForceAgeMs)) {
       return {
-        series: { ...cached, stale: false },
+        series: {
+          ...cached,
+          stale: false,
+          refreshSkipped: force,
+        },
         requested: false,
       };
     }
@@ -76,7 +83,7 @@ export function createMarketService({
         return {
           series: {
             ...cached,
-            stale: true,
+            stale: !isFresh,
             refreshError: error.message,
           },
           requested: true,

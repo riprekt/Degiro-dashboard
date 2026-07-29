@@ -110,6 +110,7 @@ The server:
 - requests weekly adjusted closing prices from Alpha Vantage;
 - stores normalized responses under `.cache/prices/`;
 - reuses a complete cache for 12 hours;
+- prevents manual refreshes from repeating requests within one hour;
 - refreshes only the latest missing portion of stale histories;
 - spaces requests out to respect the free API limit;
 - falls back to stale cached prices when the market source is unavailable.

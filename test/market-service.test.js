@@ -54,6 +54,35 @@ test("a fresh complete cache avoids a provider request", async () => {
   assert.equal(prices.TEST.points[0].close, 110);
 });
 
+test("manual refresh does not spend API quota on a recently fetched cache", async () => {
+  const cache = memoryCache({
+    version: 1,
+    symbol: "TEST",
+    source: "Test",
+    fetchedAt: new Date(currentTime - 60_000).toISOString(),
+    coveredFrom: request.period1,
+    points: [{ date: "2024-01-31", close: 110 }],
+  });
+  let providerCalls = 0;
+  const service = createMarketService({
+    cache,
+    provider: {
+      name: "Test",
+      async fetchDailyCloses() {
+        providerCalls += 1;
+        return [];
+      },
+    },
+    now: () => currentTime,
+  });
+
+  const prices = await service.getPrices({ ...request, force: true });
+
+  assert.equal(providerCalls, 0);
+  assert.equal(prices.TEST.stale, false);
+  assert.equal(prices.TEST.refreshSkipped, true);
+});
+
 test("a stale cache is refreshed and merged by date", async () => {
   const cache = memoryCache({
     version: 1,
@@ -144,6 +173,32 @@ test("a complete stale cache remains available when refresh fails", async () => 
   assert.equal(prices.TEST.stale, true);
   assert.equal(prices.TEST.refreshError, "offline");
   assert.equal(prices.TEST.points[0].close, 105);
+});
+
+test("a failed optional refresh does not mark a fresh cache as stale", async () => {
+  const cache = memoryCache({
+    version: 1,
+    symbol: "TEST",
+    source: "Test",
+    fetchedAt: new Date(currentTime - 2 * 60 * 60 * 1000).toISOString(),
+    coveredFrom: request.period1,
+    points: [{ date: "2024-01-31", close: 105 }],
+  });
+  const service = createMarketService({
+    cache,
+    provider: {
+      name: "Test",
+      async fetchDailyCloses() {
+        throw new Error("daily limit reached");
+      },
+    },
+    now: () => currentTime,
+  });
+
+  const prices = await service.getPrices({ ...request, force: true });
+
+  assert.equal(prices.TEST.stale, false);
+  assert.equal(prices.TEST.refreshError, "daily limit reached");
 });
 
 test("symbols are requested sequentially with a short pause between them", async () => {

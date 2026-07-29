@@ -37,10 +37,15 @@ export async function fetchMarketPrices(transactionText, { refresh = false } = {
       code: "warning.stalePrices",
       values: { symbol },
     }));
+  const series = Object.values(body.prices);
+  const refreshError = series.find((entry) => entry.refreshError)?.refreshError;
 
   return {
     prices: body.prices,
     warnings,
     usedStaleCache: warnings.length > 0,
+    refreshError,
+    refreshSkipped:
+      refresh && series.length > 0 && series.every((entry) => entry.refreshSkipped),
   };
 }
