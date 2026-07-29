@@ -26,19 +26,24 @@ export function createMarketService({
 }) {
   async function pricesForSymbol(symbol, period1, period2, force) {
     const cached = await cache.read(symbol);
+    const usesCurrentProvider = cached?.source === provider.name;
     const coversStart =
       cached &&
       cached.coveredFrom <= period1 + marketOpenToleranceSeconds;
     const isFresh =
+      usesCurrentProvider &&
       coversStart &&
       now() - Date.parse(cached.fetchedAt) < freshnessMs;
 
     if (!force && isFresh) {
-      return { ...cached, stale: false };
+      return {
+        series: { ...cached, stale: false },
+        requested: false,
+      };
     }
 
     const fetchFrom =
-      coversStart && cached.points.length
+      usesCurrentProvider && coversStart && cached.points.length
         ? Math.max(period1, unixDate(cached.points.at(-1).date) - overlapSeconds)
         : period1;
 
@@ -53,19 +58,28 @@ export function createMarketService({
         symbol,
         source: provider.name,
         fetchedAt: new Date(now()).toISOString(),
-        coveredFrom: coversStart
+        coveredFrom: usesCurrentProvider && coversStart
           ? Math.min(cached.coveredFrom, period1)
           : period1,
-        points: mergePoints(coversStart ? cached.points : [], newPoints),
+        points: mergePoints(
+          usesCurrentProvider && coversStart ? cached.points : [],
+          newPoints,
+        ),
       };
       await cache.write(symbol, entry);
-      return { ...entry, stale: false };
+      return {
+        series: { ...entry, stale: false },
+        requested: true,
+      };
     } catch (error) {
       if (coversStart && cached.points.length) {
         return {
-          ...cached,
-          stale: true,
-          refreshError: error.message,
+          series: {
+            ...cached,
+            stale: true,
+            refreshError: error.message,
+          },
+          requested: true,
         };
       }
       throw error;
@@ -77,12 +91,14 @@ export function createMarketService({
       const entries = [];
 
       for (const [index, symbol] of symbols.entries()) {
-        entries.push([
-          symbol,
-          await pricesForSymbol(symbol, period1, period2, force),
-        ]);
+        const result = await pricesForSymbol(symbol, period1, period2, force);
+        entries.push([symbol, result.series]);
 
-        if (index < symbols.length - 1 && requestSpacingMs > 0) {
+        if (
+          result.requested &&
+          index < symbols.length - 1 &&
+          requestSpacingMs > 0
+        ) {
           await wait(requestSpacingMs);
         }
       }

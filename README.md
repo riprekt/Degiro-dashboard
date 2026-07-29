@@ -28,13 +28,30 @@ recognized automatically.
 
 - Node.js 18 or newer
 - A modern browser
+- A free [Alpha Vantage API key](https://www.alphavantage.co/support/#api-key)
 - Full-history Account and Transactions CSV exports from DEGIRO
 
 Folio has no third-party runtime packages, build step, or database.
 
 ## Run locally
 
-From the project directory:
+From the project directory, create your private environment file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Open `.env` and replace `replace_with_your_key` with your Alpha Vantage API
+key:
+
+```dotenv
+ALPHA_VANTAGE_API_KEY=your_key_here
+```
+
+The `.env` file is excluded from Git. The key stays on the local Node server and
+is never sent to the browser.
+
+Start Folio:
 
 ```powershell
 npm start
@@ -90,27 +107,26 @@ range to the server.
 The server:
 
 - binds only to `127.0.0.1`;
-- requests public daily closing prices from Yahoo Finance;
+- requests weekly adjusted closing prices from Alpha Vantage;
 - stores normalized responses under `.cache/prices/`;
 - reuses a complete cache for 12 hours;
 - refreshes only the latest missing portion of stale histories;
-- spaces requests out and retries temporary rate limits on an alternate host;
+- spaces requests out to respect the free API limit;
 - falls back to stale cached prices when the market source is unavailable.
 
-The `.cache/` directory is excluded from Git. No third-party market-price data is
-distributed in this repository.
-
-Yahoo Finance is currently a convenient, no-key source rather than a documented
-service contract. The provider is isolated in
-`server/market/yahoo-provider.mjs` so it can be replaced without changing the
-portfolio engine.
+The `.env` and `.cache/` paths are excluded from Git. No API keys or third-party
+market-price data are distributed in this repository. Alpha Vantage's free plan
+currently allows 25 requests per day. A first import uses one request per
+instrument plus one for EUR/USD; the disk cache prevents repeated full-history
+requests during normal use.
 
 ## Calculation model
 
 1. Account rows provide deposits, withdrawals, and historical cash balances.
 2. Transaction rows reconstruct the quantity held for each ISIN on each date.
-3. Daily public closes value those quantities.
-4. USD positions are converted with the historical EUR/USD close.
+3. Weekly adjusted public closes value those quantities, carrying the latest
+   known close forward between observations.
+4. USD positions are converted with the corresponding EUR/USD close.
 5. History contains the first transaction, every month end, and today.
 6. Profit is portfolio value minus net money added.
 7. Average yearly return uses external cash-flow timing in an XIRR-style
@@ -121,13 +137,17 @@ personal overview, not tax, accounting, trading, or investment advice.
 
 ## Supported instruments
 
-| Short name | Instrument | Market symbol |
-| --- | --- | --- |
-| IWDA | iShares Core MSCI World | `IWDA.AS` |
-| EMIM | iShares Core MSCI Emerging Markets IMI | `EMIM.AS` |
-| SWRD | SPDR MSCI World | `SWRD.AS` |
-| VWCE | Vanguard FTSE All-World | `VWCE.DE` |
-| AMC | AMC Entertainment | `AMC` |
+| Short name | Instrument | DEGIRO symbol | Price symbol |
+| --- | --- | --- | --- |
+| IWDA | iShares Core MSCI World | `IWDA.AS` | `IWDA.AMS` |
+| EMIM | iShares Core MSCI Emerging Markets IMI | `EMIM.AS` | `IS3N.DEX` |
+| SWRD | SPDR MSCI World | `SWRD.AS` | `SPPW.DEX` |
+| VWCE | Vanguard FTSE All-World | `VWCE.DE` | `VWCE.DEX` |
+| AMC | AMC Entertainment | `AMC` | `AMC` |
+
+EMIM and SWRD use their EUR-denominated Xetra listings for prices because Alpha
+Vantage does not list their Amsterdam symbols. The mappings refer to the same
+fund ISINs.
 
 An unmapped ISIN is omitted from valuation and produces a warning. Add a mapping
 to `public/js/core/instruments.js` and allow the corresponding symbol in
@@ -142,12 +162,14 @@ to `public/js/core/instruments.js` and allow the corresponding symbol in
 - Corporate actions or transferred securities not represented in
   Transactions.csv may need additional handling.
 - Browser storage capacity varies. Very large exports can exceed its quota.
-- Market data comes from an unofficial Yahoo Finance endpoint and may change.
+- The free Alpha Vantage allowance is 25 requests per day.
+- Market history has weekly rather than daily resolution.
 
 ## Project structure
 
 ```text
 degiro-dashboard/
+├── .env.example                    Local configuration template
 ├── docs/assets/                    Synthetic screenshots and walkthrough
 ├── public/
 │   ├── index.html                  Semantic page structure
@@ -159,6 +181,7 @@ degiro-dashboard/
 │   │   └── ui/                     Imports, dashboard, chart, and feedback
 │   └── styles/                     Base, import, dashboard, and responsive CSS
 ├── server/
+│   ├── env.mjs                     Private environment-file loader
 │   ├── market/                     Provider, persistent cache, and refresh policy
 │   └── static-files.mjs            Static-file security and content types
 ├── test/
@@ -198,6 +221,10 @@ browser JavaScript.
 
 - **A CSV is rejected:** export Account statement and Transactions directly from
   DEGIRO and use their complete date range.
+- **Missing API key:** copy `.env.example` to `.env`, add your Alpha Vantage key,
+  and restart Folio.
+- **API request limit reached:** wait until the daily allowance resets. Folio
+  continues using a complete cached history when one is available.
 - **An instrument warning appears:** its ISIN has no market-symbol mapping yet.
 - **Cached-price warning:** Folio could not reach the price source and is showing
   the most recent locally cached data.

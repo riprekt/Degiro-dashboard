@@ -90,6 +90,35 @@ test("a stale cache is refreshed and merged by date", async () => {
   assert.deepEqual(cache.value().points, prices.TEST.points);
 });
 
+test("a cache from the previous provider is replaced instead of merged", async () => {
+  const cache = memoryCache({
+    version: 1,
+    symbol: "TEST",
+    source: "Previous provider",
+    fetchedAt: new Date(currentTime - 60_000).toISOString(),
+    coveredFrom: request.period1,
+    points: [{ date: "2024-01-30", close: 1 }],
+  });
+  let providerCalls = 0;
+  const service = createMarketService({
+    cache,
+    provider: {
+      name: "New provider",
+      async fetchDailyCloses() {
+        providerCalls += 1;
+        return [{ date: "2024-01-31", close: 100 }];
+      },
+    },
+    now: () => currentTime,
+  });
+
+  const prices = await service.getPrices(request);
+
+  assert.equal(providerCalls, 1);
+  assert.equal(prices.TEST.source, "New provider");
+  assert.deepEqual(prices.TEST.points, [{ date: "2024-01-31", close: 100 }]);
+});
+
 test("a complete stale cache remains available when refresh fails", async () => {
   const cache = memoryCache({
     version: 1,
